@@ -20,6 +20,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Générer la liste des participants avec icône de suppression
+        let participantsHTML = '';
+        if (details.participants.length > 0) {
+          participantsHTML = details.participants.map(p => `
+            <li class="participant-item">
+              <span class="participant-email">${p}</span>
+              <span class="delete-participant" title="Unregister" data-activity="${encodeURIComponent(name)}" data-email="${encodeURIComponent(p)}">&#128465;</span>
+            </li>
+          `).join('');
+        } else {
+          participantsHTML = '<li>No participants yet</li>';
+        }
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
@@ -28,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="participants-section">
             <strong>Participants:</strong>
             <ul class="participants-list">
-              ${details.participants.length > 0 ? details.participants.map(p => `<li>${p}</li>`).join('') : '<li>No participants yet</li>'}
+              ${participantsHTML}
             </ul>
           </div>
         `;
@@ -40,6 +53,26 @@ document.addEventListener("DOMContentLoaded", () => {
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+      });
+
+      // Ajouter les gestionnaires d'événements pour la suppression
+      document.querySelectorAll('.delete-participant').forEach(icon => {
+        icon.addEventListener('click', async (e) => {
+          const activity = decodeURIComponent(icon.getAttribute('data-activity'));
+          const email = decodeURIComponent(icon.getAttribute('data-email'));
+          try {
+            const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+              method: 'POST',
+            });
+            if (response.ok) {
+              fetchActivities();
+            } else {
+              alert('Failed to unregister participant.');
+            }
+          } catch (err) {
+            alert('Error while unregistering participant.');
+          }
+        });
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
